@@ -109,10 +109,10 @@
   // Dos entradas a la misma app: la normal y la del dominio eventumhn.com.
   // Con varias cuentas de Google abiertas, la normal a veces falla; si no responde, se usa la otra
   // y este dispositivo recuerda cuál le funcionó.
-  var APP_URLS = ['https://script.google.com/macros/s/' + APP_ID + '/exec',
-                  'https://script.google.com/a/macros/eventumhn.com/s/' + APP_ID + '/exec'];
+  var APP_URLS = ['https://script.google.com/a/macros/eventumhn.com/s/' + APP_ID + '/exec',
+                  'https://script.google.com/macros/s/' + APP_ID + '/exec'];
   var urlIdx = 0;
-  try { urlIdx = Number(localStorage.getItem('ehUrlIdx')) === 1 ? 1 : 0; } catch (e) {}
+  try { urlIdx = Number(localStorage.getItem('ehUrlIdx2')) === 1 ? 1 : 0; } catch (e) {}
   var cambiosUrl = 0, appRespondio = false;
 
   var frame = document.getElementById('app');
@@ -129,7 +129,7 @@
     var t = ev.data && ev.data.tipo;
     if (t === 'appLista' || t === 'offHola') {
       appRespondio = true;
-      try { localStorage.setItem('ehUrlIdx', String(urlIdx)); } catch (e) {}
+      try { localStorage.setItem('ehUrlIdx2', String(urlIdx)); } catch (e) {}
       setTimeout(mostrar, 120);
     }
     // Recordarme en este celular: se guarda en la app instalada (el navegador puede borrar lo que guarda la página de Google)
@@ -199,7 +199,7 @@
       if (appRespondio || mostrado || urlActual !== urlIdx) return;
       if (cambiosUrl < 1) { cambiosUrl++; urlIdx = 1 - urlIdx; cargar(); return; }
       mostrar();
-    }, cargas === 1 ? 10000 : 1500);
+    }, cargas === 1 ? 8000 : 1500);
   });
   document.getElementById('reintentar').onclick = function () { cambiosUrl = 0; abrir(); };
   abrir();
