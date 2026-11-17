@@ -105,7 +105,15 @@
 
 <script>
   // Dirección de la app de Google (la misma que usa todo el equipo)
-  var APP_URL = 'https://script.google.com/macros/s/AKfycbyipUDT9rYIrbMsW1Nbu5XjPD3PN3Gh1dEb5dN-wffnSKhjNc9l93lkKlfJ8MPA-MNJ/exec';
+  var APP_ID = 'AKfycbyipUDT9rYIrbMsW1Nbu5XjPD3PN3Gh1dEb5dN-wffnSKhjNc9l93lkKlfJ8MPA-MNJ';
+  // Dos entradas a la misma app: la normal y la del dominio eventumhn.com.
+  // Con varias cuentas de Google abiertas, la normal a veces falla; si no responde, se usa la otra
+  // y este dispositivo recuerda cuál le funcionó.
+  var APP_URLS = ['https://script.google.com/macros/s/' + APP_ID + '/exec',
+                  'https://script.google.com/a/macros/eventumhn.com/s/' + APP_ID + '/exec'];
+  var urlIdx = 0;
+  try { urlIdx = Number(localStorage.getItem('ehUrlIdx')) === 1 ? 1 : 0; } catch (e) {}
+  var cambiosUrl = 0, appRespondio = false;
 
   var frame = document.getElementById('app');
   var splash = document.getElementById('splash');
@@ -119,7 +127,11 @@
   window.addEventListener('message', function (ev) {
     if (!/^https:\/\/[a-z0-9-]+\.googleusercontent\.com$/i.test(ev.origin)) return;
     var t = ev.data && ev.data.tipo;
-    if (t === 'appLista' || t === 'offHola') setTimeout(mostrar, 120);
+    if (t === 'appLista' || t === 'offHola') {
+      appRespondio = true;
+      try { localStorage.setItem('ehUrlIdx', String(urlIdx)); } catch (e) {}
+      setTimeout(mostrar, 120);
+    }
     // Recordarme en este celular: se guarda en la app instalada (el navegador puede borrar lo que guarda la página de Google)
     if (t === 'recUser' && ev.data.n && ev.data.p) { try { localStorage.setItem('ehRecUser', JSON.stringify({ n: ev.data.n, p: ev.data.p })); } catch (e) {} }
     if (t === 'olvUser') { try { localStorage.removeItem('ehRecUser'); } catch (e) {} }
@@ -171,16 +183,25 @@
       clearInterval(fraseT); document.getElementById('msg').textContent = 'Está tardando más de lo normal. Revisa tu conexión.';
       document.getElementById('lento').style.display = 'block';
     }, 25000);
-    frame.src = APP_URL + (APP_URL.indexOf('?') < 0 ? '?' : '&') + 'v=' + Date.now();
+    cargar();
+  }
+  function cargar() {
+    appRespondio = false; cargas = 0;
+    frame.src = APP_URLS[urlIdx] + '?v=' + Date.now();
   }
   frame.addEventListener('load', function () {
     cargas++;
     clearTimeout(temporizador);
     // Google arma la app en varios pasos; mantenemos la pantalla de carga mientras pinta.
-    // Respaldo por si el aviso de "lista" no llega
-    setTimeout(mostrar, cargas === 1 ? 9000 : 1500);
+    // Si la app no responde, probamos la otra entrada antes de mostrar lo que haya.
+    var urlActual = urlIdx;
+    setTimeout(function () {
+      if (appRespondio || mostrado || urlActual !== urlIdx) return;
+      if (cambiosUrl < 1) { cambiosUrl++; urlIdx = 1 - urlIdx; cargar(); return; }
+      mostrar();
+    }, cargas === 1 ? 10000 : 1500);
   });
-  document.getElementById('reintentar').onclick = abrir;
+  document.getElementById('reintentar').onclick = function () { cambiosUrl = 0; abrir(); };
   abrir();
 
   // Registro del service worker (permite instalar y abrir rápido)
